@@ -12,6 +12,11 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
+// Root path welcome route
+app.get('/', (req, res) => {
+  res.json({ message: 'MAM Industries CRM API is online and running successfully!' });
+});
+
 // Initialize database tables and seed if empty
 try {
   await initDb();
