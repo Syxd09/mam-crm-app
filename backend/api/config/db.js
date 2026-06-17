@@ -5,7 +5,16 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:%237619365978.Mh@db.cuvpqoelhdmrifchyfcs.supabase.co:5432/postgres';
+let connectionString = process.env.DATABASE_URL || 'postgresql://postgres:%237619365978.Mh@db.cuvpqoelhdmrifchyfcs.supabase.co:5432/postgres';
+
+// Auto-encode raw '#' in the password if it exists (which Vercel environment variables might contain)
+if (connectionString.includes('#') && !connectionString.includes('%23')) {
+  const atIndex = connectionString.lastIndexOf('@');
+  const hashIndex = connectionString.indexOf('#');
+  if (hashIndex !== -1 && hashIndex < atIndex) {
+    connectionString = connectionString.substring(0, hashIndex) + '%23' + connectionString.substring(hashIndex + 1);
+  }
+}
 
 // Parse database URL explicitly to bypass conflicting environment variables (like PGHOST) injected by Vercel
 const dbUrl = new URL(connectionString);
