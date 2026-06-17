@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import pg from 'pg';
 import { pool } from './config/db.js';
 import { initDb } from './db-init.js';
 
@@ -20,31 +21,57 @@ app.get('/', (req, res) => {
 // Debug endpoint to check DB connection status
 app.get('/api/debug-db', async (req, res) => {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) {
-      return res.status(500).json({
-        status: 'error',
-        message: 'DATABASE_URL environment variable is not defined on Vercel'
-      });
+    const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:%237619365978.Mh@db.cuvpqoelhdmrifchyfcs.supabase.co:5432/postgres';
+    const parsed = new URL(dbUrl);
+    
+    const pgEnvVars = {};
+    for (const key in process.env) {
+      if (key.startsWith('PG') || key.startsWith('DATABASE')) {
+        pgEnvVars[key] = process.env[key].includes('@') 
+          ? process.env[key].replace(/:([^:@]+)@/, ':****@')
+          : process.env[key];
+      }
     }
 
-    const maskedDbUrl = dbUrl.replace(/:([^:@]+)@/, ':****@');
+    const poolConfig = {
+      user: decodeURIComponent(parsed.username),
+      password: parsed.password ? '****' : 'none',
+      host: parsed.hostname,
+      port: parsed.port,
+      database: parsed.pathname.substring(1)
+    };
 
-    const result = await pool.query('SELECT NOW()');
+    // Test a direct connection using pg Client
+    const client = new pg.Client({
+      user: decodeURIComponent(parsed.username),
+      password: decodeURIComponent(parsed.password),
+      host: parsed.hostname,
+      port: parsed.port ? parseInt(parsed.port) : 5432,
+      database: parsed.pathname.substring(1),
+      ssl: dbUrl.includes('supabase') ? { rejectUnauthorized: false } : false
+    });
+    
+    let clientTest = 'not run';
+    try {
+      await client.connect();
+      const clientRes = await client.query('SELECT NOW()');
+      clientTest = `success: ${clientRes.rows[0].now}`;
+      await client.end();
+    } catch (clientErr) {
+      clientTest = `failed: ${clientErr.message}`;
+    }
+
     res.json({
-      status: 'success',
-      message: 'Database connected successfully',
-      time: result.rows[0].now,
-      databaseUrlUsed: maskedDbUrl
+      status: 'debug',
+      pgEnvVars,
+      poolConfig,
+      clientTest
     });
   } catch (err) {
     res.status(500).json({
       status: 'error',
       message: err.message,
-      stack: err.stack,
-      databaseUrlUsed: process.env.DATABASE_URL 
-        ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':****@')
-        : 'none'
+      stack: err.stack
     });
   }
 });
