@@ -21,7 +21,14 @@ app.get('/', (req, res) => {
 // Debug endpoint to check DB connection status
 app.get('/api/debug-db', async (req, res) => {
   try {
-    const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:%237619365978.Mh@db.cuvpqoelhdmrifchyfcs.supabase.co:5432/postgres';
+    let dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:%237619365978.Mh@db.cuvpqoelhdmrifchyfcs.supabase.co:5432/postgres';
+    if (dbUrl.includes('#') && !dbUrl.includes('%23')) {
+      const atIndex = dbUrl.lastIndexOf('@');
+      const hashIndex = dbUrl.indexOf('#');
+      if (hashIndex !== -1 && hashIndex < atIndex) {
+        dbUrl = dbUrl.substring(0, hashIndex) + '%23' + dbUrl.substring(hashIndex + 1);
+      }
+    }
     const parsed = new URL(dbUrl);
     
     const pgEnvVars = {};
