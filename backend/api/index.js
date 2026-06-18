@@ -200,14 +200,14 @@ app.get('/api/leads', async (req, res) => {
 // POST /api/leads - Create a new lead
 app.post('/api/leads', async (req, res) => {
   try {
-    const { name, company, segment, status, email, phone, job_title, city, notes, folder_id } = req.body;
+    const { name, company, segment, status, email, phone, job_title, city, notes, folder_id, service } = req.body;
     if (!name || !company) {
       return res.status(400).json({ error: 'Name and company are required' });
     }
 
     const query = `
-      INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, notes, folder_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, notes, folder_id, service)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *;
     `;
     const result = await pool.query(query, [
@@ -220,7 +220,8 @@ app.post('/api/leads', async (req, res) => {
       job_title || '',
       city || '',
       notes || '',
-      folder_id || null
+      folder_id || null,
+      service || ''
     ]);
 
     res.status(201).json(result.rows[0]);
@@ -234,7 +235,7 @@ app.post('/api/leads', async (req, res) => {
 app.put('/api/leads/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, company, segment, status, email, phone, job_title, city, notes, folder_id } = req.body;
+    const { name, company, segment, status, email, phone, job_title, city, notes, folder_id, service } = req.body;
 
     const checkLead = await pool.query('SELECT * FROM leads WHERE id = $1', [id]);
     if (checkLead.rows.length === 0) {
@@ -245,8 +246,8 @@ app.put('/api/leads/:id', async (req, res) => {
 
     const query = `
       UPDATE leads
-      SET name = $1, company = $2, segment = $3, status = $4, email = $5, phone = $6, job_title = $7, city = $8, notes = $9, folder_id = $10
-      WHERE id = $11
+      SET name = $1, company = $2, segment = $3, status = $4, email = $5, phone = $6, job_title = $7, city = $8, notes = $9, folder_id = $10, service = $11
+      WHERE id = $12
       RETURNING *;
     `;
 
@@ -261,6 +262,7 @@ app.put('/api/leads/:id', async (req, res) => {
       city !== undefined ? city : current.city,
       notes !== undefined ? notes : current.notes,
       folder_id !== undefined ? folder_id : current.folder_id,
+      service !== undefined ? service : current.service,
       id
     ]);
 
@@ -298,11 +300,11 @@ app.post('/api/leads/import', async (req, res) => {
 
     const imported = [];
     for (const lead of leads) {
-      const { name, company, segment, status, email, phone, city, job_title, folder_id } = lead;
+      const { name, company, segment, status, email, phone, city, job_title, folder_id, service, notes } = lead;
       if (name && company) {
         const query = `
-          INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, folder_id)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, folder_id, service, notes)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           RETURNING *;
         `;
         const result = await pool.query(query, [
@@ -314,7 +316,9 @@ app.post('/api/leads/import', async (req, res) => {
           phone || '',
           job_title || '',
           city || '',
-          folder_id || null
+          folder_id || null,
+          service || '',
+          notes || ''
         ]);
         imported.push(result.rows[0]);
       }
@@ -578,13 +582,13 @@ app.post('/api/integration/website-enquiry', async (req, res) => {
 
     // Insert lead into separate CRM PostgreSQL database
     const query = `
-      INSERT INTO leads (name, company, segment, status, email, phone, city, notes)
-      VALUES ($1, $2, $3, 'New', $4, $5, $6, $7)
+      INSERT INTO leads (name, company, segment, status, email, phone, city, notes, service)
+      VALUES ($1, $2, $3, 'New', $4, $5, $6, $7, $8)
       RETURNING *;
     `;
     
-    const notesContent = `Website Enquiry Message: ${message || 'No message provided.'}`;
-    const result = await pool.query(query, [name, company, segment, email || '', phone || '', city || '', notesContent]);
+    const notesContent = message || 'No message provided.';
+    const result = await pool.query(query, [name, company, segment, email || '', phone || '', city || '', notesContent, service || '']);
 
     res.status(201).json({ 
       message: 'Lead synced successfully to CRM database', 

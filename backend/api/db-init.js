@@ -46,6 +46,10 @@ const alterNotes = `
 ALTER TABLE notes ADD COLUMN IF NOT EXISTS folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL;
 `;
 
+const alterLeadsService = `
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS service VARCHAR(255);
+`;
+
 const initialFolders = [
   { name: 'High Priority', color: '#ef4444' },
   { name: 'Q3 Campaigns', color: '#10b981' },
@@ -170,6 +174,7 @@ export async function initDb() {
     // Ensure alterations are executed if upgrading existing schema
     await pool.query(alterLeads);
     await pool.query(alterNotes);
+    await pool.query(alterLeadsService);
     console.log('Database tables verified/created/altered successfully.');
 
     // Seed Folders if empty

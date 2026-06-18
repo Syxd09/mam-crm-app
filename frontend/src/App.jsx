@@ -290,7 +290,7 @@ export default function App() {
       setModalForm({
         name: '', company: '', segment: 'OEM', status: 'New',
         email: '', phone: '', job_title: '', city: '', notes: '',
-        folder_id: selectedFolderId || ''
+        folder_id: selectedFolderId || '', service: ''
       });
     } else if (type === 'edit-lead' && data) {
       setModalForm({
@@ -303,7 +303,8 @@ export default function App() {
         job_title: data.job_title || '',
         city: data.city || '',
         notes: data.notes || '',
-        folder_id: data.folder_id || ''
+        folder_id: data.folder_id || '',
+        service: data.service || ''
       });
     } else if (type === 'add-note') {
       setModalForm({
@@ -632,6 +633,27 @@ export default function App() {
 
                   <div className="form-row">
                     <div className="form-group">
+                      <label className="form-label">Service Required</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. EPC Solar structures"
+                        value={modalForm.service || ''}
+                        onChange={(e) => handleModalInputChange('service', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Job Title</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Procurement Lead"
+                        value={modalForm.job_title || ''}
+                        onChange={(e) => handleModalInputChange('job_title', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
                       <label className="form-label">Folder Association</label>
                       <select
                         value={modalForm.folder_id || ''}
@@ -642,12 +664,12 @@ export default function App() {
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Job Title</label>
+                      <label className="form-label">City</label>
                       <input
                         type="text"
-                        placeholder="e.g. Procurement Lead"
-                        value={modalForm.job_title || ''}
-                        onChange={(e) => handleModalInputChange('job_title', e.target.value)}
+                        placeholder="e.g. Bengaluru"
+                        value={modalForm.city || ''}
+                        onChange={(e) => handleModalInputChange('city', e.target.value)}
                       />
                     </div>
                   </div>
@@ -674,26 +696,14 @@ export default function App() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">City</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Bengaluru"
-                      value={modalForm.city || ''}
-                      onChange={(e) => handleModalInputChange('city', e.target.value)}
-                    />
+                    <label className="form-label">Project Details / Notes</label>
+                    <textarea
+                      rows="3"
+                      placeholder="Outreach notes or website enquiry details..."
+                      value={modalForm.notes || ''}
+                      onChange={(e) => handleModalInputChange('notes', e.target.value)}
+                    ></textarea>
                   </div>
-
-                  {modalType === 'add-lead' && (
-                    <div className="form-group">
-                      <label className="form-label">Notes</label>
-                      <textarea
-                        rows="3"
-                        placeholder="Initial notes on outreach or lead details..."
-                        value={modalForm.notes || ''}
-                        onChange={(e) => handleModalInputChange('notes', e.target.value)}
-                      ></textarea>
-                    </div>
-                  )}
                 </>
               )}
 

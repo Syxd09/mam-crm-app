@@ -68,6 +68,8 @@ export default function LeadsTable({
                 <th>Name & City</th>
                 <th>Company</th>
                 <th>Segment</th>
+                <th>Service Required</th>
+                <th>Project Details</th>
                 <th>Contact details</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -105,6 +107,24 @@ export default function LeadsTable({
                   </td>
                   <td>
                     <span className="tag">{lead.segment}</span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 500, fontSize: '13px' }}>{lead.service || 'General'}</div>
+                  </td>
+                  <td>
+                    <div 
+                      style={{ 
+                        fontSize: '12px', 
+                        color: 'var(--color-text-secondary)',
+                        maxWidth: '240px', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis', 
+                        whiteSpace: 'nowrap' 
+                      }} 
+                      title={lead.notes}
+                    >
+                      {lead.notes || 'No project details'}
+                    </div>
                   </td>
                   <td>
                     <div style={{ fontSize: '12px' }}>{lead.email || '-'}</div>
