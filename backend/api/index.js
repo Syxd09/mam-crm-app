@@ -200,14 +200,14 @@ app.get('/api/leads', async (req, res) => {
 // POST /api/leads - Create a new lead
 app.post('/api/leads', async (req, res) => {
   try {
-    const { name, company, segment, status, email, phone, job_title, city, notes, folder_id, service } = req.body;
+    const { name, company, segment, status, email, phone, job_title, city, notes, folder_id, service, follow_up_date } = req.body;
     if (!name || !company) {
       return res.status(400).json({ error: 'Name and company are required' });
     }
 
     const query = `
-      INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, notes, folder_id, service)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, notes, folder_id, service, follow_up_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *;
     `;
     const result = await pool.query(query, [
@@ -221,7 +221,8 @@ app.post('/api/leads', async (req, res) => {
       city || '',
       notes || '',
       folder_id || null,
-      service || ''
+      service || '',
+      follow_up_date || null
     ]);
 
     res.status(201).json(result.rows[0]);
@@ -235,7 +236,7 @@ app.post('/api/leads', async (req, res) => {
 app.put('/api/leads/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, company, segment, status, email, phone, job_title, city, notes, folder_id, service } = req.body;
+    const { name, company, segment, status, email, phone, job_title, city, notes, folder_id, service, follow_up_date } = req.body;
 
     const checkLead = await pool.query('SELECT * FROM leads WHERE id = $1', [id]);
     if (checkLead.rows.length === 0) {
@@ -246,8 +247,8 @@ app.put('/api/leads/:id', async (req, res) => {
 
     const query = `
       UPDATE leads
-      SET name = $1, company = $2, segment = $3, status = $4, email = $5, phone = $6, job_title = $7, city = $8, notes = $9, folder_id = $10, service = $11
-      WHERE id = $12
+      SET name = $1, company = $2, segment = $3, status = $4, email = $5, phone = $6, job_title = $7, city = $8, notes = $9, folder_id = $10, service = $11, follow_up_date = $12
+      WHERE id = $13
       RETURNING *;
     `;
 
@@ -263,6 +264,7 @@ app.put('/api/leads/:id', async (req, res) => {
       notes !== undefined ? notes : current.notes,
       folder_id !== undefined ? folder_id : current.folder_id,
       service !== undefined ? service : current.service,
+      follow_up_date !== undefined ? follow_up_date : current.follow_up_date,
       id
     ]);
 
@@ -300,11 +302,11 @@ app.post('/api/leads/import', async (req, res) => {
 
     const imported = [];
     for (const lead of leads) {
-      const { name, company, segment, status, email, phone, city, job_title, folder_id, service, notes } = lead;
+      const { name, company, segment, status, email, phone, city, job_title, folder_id, service, notes, follow_up_date } = lead;
       if (name && company) {
         const query = `
-          INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, folder_id, service, notes)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, folder_id, service, notes, follow_up_date)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           RETURNING *;
         `;
         const result = await pool.query(query, [
@@ -318,7 +320,8 @@ app.post('/api/leads/import', async (req, res) => {
           city || '',
           folder_id || null,
           service || '',
-          notes || ''
+          notes || '',
+          follow_up_date || null
         ]);
         imported.push(result.rows[0]);
       }

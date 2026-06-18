@@ -10,13 +10,36 @@ const SEGMENT_COLORS = {
   Cold: '#888780'
 };
 
-export default function Dashboard({ data, onNavigate }) {
+export default function Dashboard({ data, onNavigate, leads = [], onSelectLead }) {
   const { metrics = {}, funnel = {}, recentLeads = [] } = data;
   const statuses = ['New', 'Contacted', 'Qualified', 'Proposal', 'Won', 'Lost', 'Cold'];
 
   // Calculate max count for scaling the funnel bar widths
   const counts = Object.values(funnel);
   const maxCount = Math.max(...counts, 1);
+
+  // Calculate follow-up reminders
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const followUps = leads
+    .filter(lead => lead.follow_up_date && lead.status !== 'Won' && lead.status !== 'Lost')
+    .map(lead => {
+      // Parse follow-up date (handling UTC/local date strings correctly)
+      const dateParts = lead.follow_up_date.split('-');
+      const fuDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+      fuDate.setHours(0, 0, 0, 0);
+      
+      let type = 'upcoming';
+      if (fuDate < today) {
+        type = 'overdue';
+      } else if (fuDate.getTime() === today.getTime()) {
+        type = 'today';
+      }
+      
+      return { ...lead, fuDate, type };
+    })
+    .sort((a, b) => a.fuDate - b.fuDate);
 
   const getStatusBadgeClass = (status) => {
     const map = {
@@ -93,40 +116,93 @@ export default function Dashboard({ data, onNavigate }) {
           </div>
         </div>
 
-        {/* Recent Leads */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Recent Leads</span>
-            <button className="btn btn-sm btn-primary" onClick={() => onNavigate('leads')}>
-              Manage Leads
-            </button>
-          </div>
-          <div className="recent-leads-list">
-            {recentLeads.length > 0 ? (
-              recentLeads.map(lead => (
-                <div
-                  key={lead.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 0',
-                    borderBottom: '1px solid var(--color-border-tertiary)'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 600 }}>{lead.name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
-                      {lead.company} &middot; <span className="tag">{lead.segment}</span>
+        {/* Stacked Right Column: Follow-ups & Recent Leads */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Follow-up Reminders */}
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div className="card-header">
+              <span className="card-title">Follow-up Reminders</span>
+              <button className="btn btn-sm" onClick={() => onNavigate('leads')}>
+                Manage Leads
+              </button>
+            </div>
+            <div className="reminders-list" style={{ maxHeight: '240px', overflowY: 'auto' }}>
+              {followUps.length > 0 ? (
+                followUps.map(lead => (
+                  <div
+                    key={lead.id}
+                    onClick={() => onSelectLead(lead)}
+                    className={`reminder-item reminder-${lead.type}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      borderBottom: '1px solid var(--color-border-tertiary)',
+                      borderRadius: 'var(--border-radius-sm)',
+                      cursor: 'pointer',
+                      marginBottom: '6px',
+                      transition: 'all 0.2s ease',
+                      borderLeft: '4px solid transparent'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 600 }}>{lead.name}</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)' }}>
+                        {lead.company} &middot; <span className={`reminder-tag tag-${lead.type}`}>{lead.type.toUpperCase()}</span>
+                      </div>
+                    </div>
+                    <div className="reminder-date-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600 }}>
+                      <i className="ti ti-calendar-event"></i>
+                      {lead.follow_up_date.split('T')[0]}
                     </div>
                   </div>
-                  <span className={getStatusBadgeClass(lead.status)}>{lead.status}</span>
-                </div>
-              ))
-            ) : (
-              <div className="empty">No leads found yet. Add some leads in the Lead Manager!</div>
-            )}
+                ))
+              ) : (
+                <div className="empty" style={{ padding: '16px 0' }}>No scheduled follow-ups. Good job staying on top!</div>
+              )}
+            </div>
           </div>
+
+          {/* Recent Leads */}
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div className="card-header">
+              <span className="card-title">Recent Leads</span>
+              <button className="btn btn-sm btn-primary" onClick={() => onNavigate('leads')}>
+                Add Lead
+              </button>
+            </div>
+            <div className="recent-leads-list">
+              {recentLeads.length > 0 ? (
+                recentLeads.map(lead => (
+                  <div
+                    key={lead.id}
+                    onClick={() => onSelectLead(lead)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 0',
+                      borderBottom: '1px solid var(--color-border-tertiary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{lead.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                        {lead.company} &middot; <span className="tag">{lead.segment}</span>
+                      </div>
+                    </div>
+                    <span className={getStatusBadgeClass(lead.status)}>{lead.status}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="empty">No leads found yet. Add some leads in the Lead Manager!</div>
+              )}
+            </div>
+          </div>
+          
         </div>
 
       </div>

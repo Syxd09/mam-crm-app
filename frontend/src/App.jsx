@@ -4,6 +4,8 @@ import LeadsTable from './components/LeadsTable';
 import ScriptsLibrary from './components/ScriptsLibrary';
 import NotesManager from './components/NotesManager';
 import ConversionTracker from './components/ConversionTracker';
+import KanbanBoard from './components/KanbanBoard';
+import LeadDetailDrawer from './components/LeadDetailDrawer';
 
 const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:5001/api').trim();
 const SEGMENTS = ['OEM', 'EPC', 'Architecture', 'Factory', 'Defence'];
@@ -32,6 +34,19 @@ export default function App() {
   const [modalType, setModalType] = useState(null); // 'add-lead' | 'edit-lead' | 'add-note' | 'import-csv' | 'add-folder'
   const [activeLead, setActiveLead] = useState(null);
   const [modalForm, setModalForm] = useState({});
+  
+  // Detail Drawer State
+  const [selectedDetailLead, setSelectedDetailLead] = useState(null);
+
+  // Keep selected lead details drawer in sync with latest leads state
+  useEffect(() => {
+    if (selectedDetailLead) {
+      const latestLead = leads.find(l => l.id === selectedDetailLead.id);
+      if (latestLead) {
+        setSelectedDetailLead(latestLead);
+      }
+    }
+  }, [leads]);
 
   // 1. Initial Load and Theme Setup
   useEffect(() => {
@@ -290,7 +305,7 @@ export default function App() {
       setModalForm({
         name: '', company: '', segment: 'OEM', status: 'New',
         email: '', phone: '', job_title: '', city: '', notes: '',
-        folder_id: selectedFolderId || '', service: ''
+        folder_id: selectedFolderId || '', service: '', follow_up_date: ''
       });
     } else if (type === 'edit-lead' && data) {
       setModalForm({
@@ -304,7 +319,8 @@ export default function App() {
         city: data.city || '',
         notes: data.notes || '',
         folder_id: data.folder_id || '',
-        service: data.service || ''
+        service: data.service || '',
+        follow_up_date: data.follow_up_date ? data.follow_up_date.split('T')[0] : ''
       });
     } else if (type === 'add-note') {
       setModalForm({
@@ -339,14 +355,22 @@ export default function App() {
         return;
       }
       // Convert folder_id to integer or null
-      const formatted = { ...modalForm, folder_id: modalForm.folder_id ? parseInt(modalForm.folder_id) : null };
+      const formatted = { 
+        ...modalForm, 
+        folder_id: modalForm.folder_id ? parseInt(modalForm.folder_id) : null,
+        follow_up_date: modalForm.follow_up_date || null
+      };
       handleCreateLead(formatted);
     } else if (modalType === 'edit-lead' && activeLead) {
       if (!modalForm.name || !modalForm.company) {
         alert('Name and Company are required!');
         return;
       }
-      const formatted = { ...modalForm, folder_id: modalForm.folder_id ? parseInt(modalForm.folder_id) : null };
+      const formatted = { 
+        ...modalForm, 
+        folder_id: modalForm.folder_id ? parseInt(modalForm.folder_id) : null,
+        follow_up_date: modalForm.follow_up_date || null
+      };
       handleUpdateLead(activeLead.id, formatted);
     } else if (modalType === 'add-note') {
       if (!modalForm.title && !modalForm.body) {
@@ -382,6 +406,7 @@ export default function App() {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'ti ti-layout-dashboard' },
     { id: 'leads', label: 'Lead Manager', icon: 'ti ti-users' },
+    { id: 'kanban', label: 'Kanban Board', icon: 'ti ti-layout-kanban' },
     { id: 'scripts', label: 'Scripts Library', icon: 'ti ti-message' },
     { id: 'notes', label: 'Outreach Notes', icon: 'ti ti-notebook' },
     { id: 'conversion', label: 'Conversion Tracker', icon: 'ti ti-chart-bar' }
@@ -537,7 +562,12 @@ export default function App() {
           ) : (
             <>
               {currentPage === 'dashboard' && (
-                <Dashboard data={dashboardData} onNavigate={setCurrentPage} />
+                <Dashboard 
+                  data={dashboardData} 
+                  onNavigate={setCurrentPage} 
+                  leads={leads}
+                  onSelectLead={setSelectedDetailLead}
+                />
               )}
               {currentPage === 'leads' && (
                 <LeadsTable
@@ -548,6 +578,14 @@ export default function App() {
                   onUpdateStatus={handleUpdateLeadStatus}
                   onAddLeadNote={(lead) => openModal('add-note', lead)}
                   onImportCSV={() => openModal('import-csv')}
+                  onSelectLead={setSelectedDetailLead}
+                />
+              )}
+              {currentPage === 'kanban' && (
+                <KanbanBoard
+                  leads={leads}
+                  onUpdateStatus={handleUpdateLeadStatus}
+                  onSelectLead={setSelectedDetailLead}
                 />
               )}
               {currentPage === 'scripts' && <ScriptsLibrary />}
@@ -678,21 +716,30 @@ export default function App() {
                     <div className="form-group">
                       <label className="form-label">Email</label>
                       <input
-                        type="email"
-                        placeholder="email@company.com"
-                        value={modalForm.email || ''}
-                        onChange={(e) => handleModalInputChange('email', e.target.value)}
+                         type="email"
+                         placeholder="email@company.com"
+                         value={modalForm.email || ''}
+                         onChange={(e) => handleModalInputChange('email', e.target.value)}
                       />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Phone</label>
                       <input
-                        type="text"
-                        placeholder="+91 ..."
-                        value={modalForm.phone || ''}
-                        onChange={(e) => handleModalInputChange('phone', e.target.value)}
+                         type="text"
+                         placeholder="+91 ..."
+                         value={modalForm.phone || ''}
+                         onChange={(e) => handleModalInputChange('phone', e.target.value)}
                       />
                     </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Next Follow-up Date</label>
+                    <input
+                      type="date"
+                      value={modalForm.follow_up_date || ''}
+                      onChange={(e) => handleModalInputChange('follow_up_date', e.target.value)}
+                    />
                   </div>
 
                   <div className="form-group">
@@ -822,6 +869,17 @@ export default function App() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Drawer for Lead Details */}
+      {selectedDetailLead && (
+        <LeadDetailDrawer
+          lead={selectedDetailLead}
+          onClose={() => setSelectedDetailLead(null)}
+          allNotes={notes}
+          onAddNote={handleCreateNote}
+          onEditLead={(lead) => openModal('edit-lead', lead)}
+        />
       )}
       
       {/* Dynamic spinner spin style helper */}

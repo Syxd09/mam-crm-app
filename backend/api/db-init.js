@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS leads (
     city VARCHAR(255),
     notes TEXT,
     folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL,
+    follow_up_date DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 `;
@@ -50,6 +51,10 @@ const alterLeadsService = `
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS service VARCHAR(255);
 `;
 
+const alterLeadsFollowUpDate = `
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS follow_up_date DATE;
+`;
+
 const initialFolders = [
   { name: 'High Priority', color: '#ef4444' },
   { name: 'Q3 Campaigns', color: '#10b981' },
@@ -67,7 +72,8 @@ const initialLeads = [
     job_title: 'Sourcing Manager',
     city: 'Pune',
     notes: 'Outreached via LinkedIn. Awaiting connection acceptance.',
-    folderName: 'High Priority'
+    folderName: 'High Priority',
+    follow_up_date: '2026-06-19'
   },
   {
     name: 'Ananya Rao',
@@ -79,7 +85,8 @@ const initialLeads = [
     job_title: 'Procurement Lead',
     city: 'Bengaluru',
     notes: 'Sent Email 1. Had a brief chat, they are evaluating vendors for a new solar mounting structural project.',
-    folderName: 'Q3 Campaigns'
+    folderName: 'Q3 Campaigns',
+    follow_up_date: '2026-06-18'
   },
   {
     name: 'Vikram Mehta',
@@ -91,7 +98,8 @@ const initialLeads = [
     job_title: 'Principal Architect',
     city: 'Mumbai',
     notes: 'Needs custom metal cladding screens for a commercial project. Qualified budget and timeline.',
-    folderName: 'Partner Outreach'
+    folderName: 'Partner Outreach',
+    follow_up_date: '2026-06-15'
   },
   {
     name: 'Prakash Patel',
@@ -103,7 +111,8 @@ const initialLeads = [
     job_title: 'Plant Operations Head',
     city: 'Ahmedabad',
     notes: 'Sent quote for custom jigs & fixtures. Price details shared on Monday.',
-    folderName: 'High Priority'
+    folderName: 'High Priority',
+    follow_up_date: '2026-06-25'
   },
   {
     name: 'Col. K. Singh',
@@ -115,7 +124,8 @@ const initialLeads = [
     job_title: 'Director of Procurement',
     city: 'New Delhi',
     notes: 'Purchase Order received for precision enclosures. Production batch in planning phase.',
-    folderName: ''
+    folderName: '',
+    follow_up_date: null
   },
   {
     name: 'Siddharth Nair',
@@ -127,7 +137,8 @@ const initialLeads = [
     job_title: 'Purchase Executive',
     city: 'Chennai',
     notes: 'Lost to a local competitor offering 15% lower price.',
-    folderName: ''
+    folderName: '',
+    follow_up_date: null
   },
   {
     name: 'Meera Deshmukh',
@@ -139,7 +150,8 @@ const initialLeads = [
     job_title: 'Project Coordinator',
     city: 'Hyderabad',
     notes: 'Project put on hold indefinitely. Re-engagement scheduled for next year.',
-    folderName: 'Q3 Campaigns'
+    folderName: 'Q3 Campaigns',
+    follow_up_date: null
   }
 ];
 
@@ -175,6 +187,7 @@ export async function initDb() {
     await pool.query(alterLeads);
     await pool.query(alterNotes);
     await pool.query(alterLeadsService);
+    await pool.query(alterLeadsFollowUpDate);
     console.log('Database tables verified/created/altered successfully.');
 
     // Seed Folders if empty
@@ -204,12 +217,12 @@ export async function initDb() {
     // Check if leads table is empty
     const checkLeads = await pool.query('SELECT COUNT(*) FROM leads');
     if (parseInt(checkLeads.rows[0].count) === 0) {
-      console.log('Leads table is empty. Seeding initial leads with folder assignments...');
+       console.log('Leads table is empty. Seeding initial leads with folder assignments...');
       for (const lead of initialLeads) {
         const fId = lead.folderName ? folderMap[lead.folderName] : null;
         const query = `
-          INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, notes, folder_id)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          INSERT INTO leads (name, company, segment, status, email, phone, job_title, city, notes, folder_id, follow_up_date)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           RETURNING id;
         `;
         const res = await pool.query(query, [
@@ -222,7 +235,8 @@ export async function initDb() {
           lead.job_title,
           lead.city,
           lead.notes,
-          fId
+          fId,
+          lead.follow_up_date
         ]);
         
         // Find corresponding note to link

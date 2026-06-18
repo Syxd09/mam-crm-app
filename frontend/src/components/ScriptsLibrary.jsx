@@ -70,6 +70,27 @@ export default function ScriptsLibrary() {
   const [currentChannel, setCurrentChannel] = useState('email');
   const [copiedIndex, setCopiedIndex] = useState(null);
 
+  // Customization states
+  const [name, setName] = useState('Rahul');
+  const [company, setCompany] = useState('Tata Motors');
+  const [city, setCity] = useState('Pune');
+  const [service, setService] = useState('solar structures');
+  const [yourName, setYourName] = useState('Matheen');
+
+  const personalizeText = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/\[Name\]/g, name || '[Name]')
+      .replace(/\[Company\]/g, company || '[Company]')
+      .replace(/\[city\]/g, city || '[city]')
+      .replace(/\[City\]/g, city || '[City]')
+      .replace(/\[product type\]/g, service || '[product type]')
+      .replace(/\[type of project, if known\]/g, service || '[type of project]')
+      .replace(/\[type of project\]/g, service || '[type of project]')
+      .replace(/\[Your name\]/g, yourName || '[Your name]')
+      .replace(/\[Your projects\]/g, yourName || '[Your projects]');
+  };
+
   const handleCopy = (text, index) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedIndex(index);
@@ -81,6 +102,60 @@ export default function ScriptsLibrary() {
 
   return (
     <div className="scripts-page">
+      {/* Customizer Panel */}
+      <div className="card personalize-card" style={{ marginBottom: '24px' }}>
+        <div className="card-header" style={{ marginBottom: '16px' }}>
+          <span className="card-title"><i className="ti ti-edit" style={{ marginRight: '6px' }}></i> Personalize Script Details</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Contact Person Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Rahul"
+            />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Company Name</label>
+            <input
+              type="text"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="e.g. Tata Motors"
+            />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">City</label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="e.g. Pune"
+            />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Service / Project</label>
+            <input
+              type="text"
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              placeholder="e.g. solar structures"
+            />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Your Name</label>
+            <input
+              type="text"
+              value={yourName}
+              onChange={(e) => setYourName(e.target.value)}
+              placeholder="e.g. Matheen"
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <div className="card-header">
           <span className="card-title">Select Segment Target</span>
@@ -117,26 +192,29 @@ export default function ScriptsLibrary() {
 
         {/* Scripts Content */}
         <div className="scripts-content">
-          {currentData.map((script, idx) => (
-            <div key={idx} className="script-block">
-              <div className="script-num">{script.num}</div>
-              <div className="script-text">{script.text}</div>
-              <button
-                className="btn btn-sm copy-btn btn-primary"
-                onClick={() => handleCopy(script.text, idx)}
-              >
-                {copiedIndex === idx ? (
-                  <>
-                    <i className="ti ti-check"></i> Copied
-                  </>
-                ) : (
-                  <>
-                    <i className="ti ti-copy"></i> Copy Script
-                  </>
-                )}
-              </button>
-            </div>
-          ))}
+          {currentData.map((script, idx) => {
+            const personalized = personalizeText(script.text);
+            return (
+              <div key={idx} className="script-block">
+                <div className="script-num">{script.num}</div>
+                <div className="script-text">{personalized}</div>
+                <button
+                  className="btn btn-sm copy-btn btn-primary"
+                  onClick={() => handleCopy(personalized, idx)}
+                >
+                  {copiedIndex === idx ? (
+                    <>
+                      <i className="ti ti-check"></i> Copied
+                    </>
+                  ) : (
+                    <>
+                      <i className="ti ti-copy"></i> Copy Script
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

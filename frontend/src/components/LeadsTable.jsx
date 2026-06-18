@@ -10,7 +10,8 @@ export default function LeadsTable({
   onDeleteLead, 
   onUpdateStatus, 
   onAddLeadNote, 
-  onImportCSV 
+  onImportCSV,
+  onSelectLead
 }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -30,6 +31,40 @@ export default function LeadsTable({
     
     return matchesSearch && matchesStatus && matchesSegment;
   });
+
+  const handleExportCSV = () => {
+    if (filteredLeads.length === 0) {
+      alert('No leads to export.');
+      return;
+    }
+    const headers = ['Name', 'Company', 'Job Title', 'Segment', 'Service', 'City', 'Email', 'Phone', 'Status', 'Notes', 'Follow-up Date'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredLeads.map(lead => [
+        `"${(lead.name || '').replace(/"/g, '""')}"`,
+        `"${(lead.company || '').replace(/"/g, '""')}"`,
+        `"${(lead.job_title || '').replace(/"/g, '""')}"`,
+        `"${(lead.segment || '').replace(/"/g, '""')}"`,
+        `"${(lead.service || '').replace(/"/g, '""')}"`,
+        `"${(lead.city || '').replace(/"/g, '""')}"`,
+        `"${(lead.email || '').replace(/"/g, '""')}"`,
+        `"${(lead.phone || '').replace(/"/g, '""')}"`,
+        `"${(lead.status || '').replace(/"/g, '""')}"`,
+        `"${(lead.notes || '').replace(/"/g, '""')}"`,
+        `"${(lead.follow_up_date || '').replace(/"/g, '""')}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `mam_crm_leads_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="leads-page">
@@ -57,6 +92,9 @@ export default function LeadsTable({
           <option value="">All Segments</option>
           {SEGMENTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        <button className="btn btn-sm btn-primary" onClick={handleExportCSV} title="Export current leads to CSV">
+          <i className="ti ti-download"></i> Export CSV
+        </button>
       </div>
 
       {/* Leads Table Card */}
@@ -77,7 +115,7 @@ export default function LeadsTable({
             </thead>
             <tbody>
               {filteredLeads.map(lead => (
-                <tr key={lead.id}>
+                <tr key={lead.id} onClick={() => onSelectLead(lead)} style={{ cursor: 'pointer' }}>
                   <td>
                     <div style={{ fontWeight: 600, fontSize: '14px' }}>{lead.name}</div>
                     <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
@@ -130,7 +168,7 @@ export default function LeadsTable({
                     <div style={{ fontSize: '12px' }}>{lead.email || '-'}</div>
                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{lead.phone || '-'}</div>
                   </td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <select 
                       style={{ width: 'auto', fontSize: '12px', padding: '4px 8px' }}
                       value={lead.status}
@@ -139,7 +177,7 @@ export default function LeadsTable({
                       {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                       <button 
                         className="btn btn-sm" 
