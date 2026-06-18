@@ -28,6 +28,7 @@ export default function App() {
 
   // Loading & Error States
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
 
   // Modal States
@@ -59,11 +60,15 @@ export default function App() {
       document.body.classList.remove('dark-mode');
     }
 
-    refreshAllData(selectedFolderId);
+    refreshAllData(selectedFolderId, true);
   }, [selectedFolderId]);
 
-  const refreshAllData = async (folderId = selectedFolderId) => {
-    setLoading(true);
+  const refreshAllData = async (folderId = selectedFolderId, showSpinner = false) => {
+    if (showSpinner) {
+      setLoading(true);
+    } else {
+      setSyncing(true);
+    }
     setError(null);
     try {
       await Promise.all([
@@ -78,6 +83,7 @@ export default function App() {
       setError('Connection to backend failed. Please ensure the Express server on port 5001 is running.');
     } finally {
       setLoading(false);
+      setSyncing(false);
     }
   };
 
@@ -143,7 +149,7 @@ export default function App() {
       if (res.status === 409) throw new Error('Folder name already exists');
       if (!res.ok) throw new Error('Failed to create folder');
       closeModal();
-      refreshAllData();
+      refreshAllData(selectedFolderId, false);
     } catch (err) {
       alert(err.message);
     }
@@ -158,7 +164,7 @@ export default function App() {
       if (selectedFolderId === id) {
         setSelectedFolderId(null);
       } else {
-        refreshAllData(selectedFolderId);
+        refreshAllData(selectedFolderId, false);
       }
     } catch (err) {
       alert(err.message);
@@ -174,7 +180,7 @@ export default function App() {
       });
       if (!res.ok) throw new Error('Failed to create lead');
       closeModal();
-      refreshAllData();
+      refreshAllData(selectedFolderId, false);
     } catch (err) {
       alert(err.message);
     }
@@ -189,13 +195,17 @@ export default function App() {
       });
       if (!res.ok) throw new Error('Failed to update lead');
       closeModal();
-      refreshAllData();
+      refreshAllData(selectedFolderId, false);
     } catch (err) {
       alert(err.message);
     }
   };
 
   const handleUpdateLeadStatus = async (id, status) => {
+    const originalLeads = [...leads];
+    // Optimistic update
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    
     try {
       const res = await fetch(`${API_BASE}/leads/${id}`, {
         method: 'PUT',
@@ -203,9 +213,10 @@ export default function App() {
         body: JSON.stringify({ status })
       });
       if (!res.ok) throw new Error('Failed to update status');
-      refreshAllData();
+      refreshAllData(selectedFolderId, false);
     } catch (err) {
       alert(err.message);
+      setLeads(originalLeads); // Rollback
     }
   };
 
@@ -214,7 +225,7 @@ export default function App() {
     try {
       const res = await fetch(`${API_BASE}/leads/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete lead');
-      refreshAllData();
+      refreshAllData(selectedFolderId, false);
     } catch (err) {
       alert(err.message);
     }
@@ -229,7 +240,7 @@ export default function App() {
       });
       if (!res.ok) throw new Error('Failed to create note');
       closeModal();
-      refreshAllData();
+      refreshAllData(selectedFolderId, false);
     } catch (err) {
       alert(err.message);
     }
@@ -240,7 +251,7 @@ export default function App() {
     try {
       const res = await fetch(`${API_BASE}/notes/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete note');
-      refreshAllData();
+      refreshAllData(selectedFolderId, false);
     } catch (err) {
       alert(err.message);
     }
@@ -290,7 +301,7 @@ export default function App() {
       const resData = await res.json();
       alert(resData.message);
       closeModal();
-      refreshAllData();
+      refreshAllData(selectedFolderId, false);
     } catch (err) {
       alert(err.message);
     }
@@ -514,8 +525,14 @@ export default function App() {
                 <i className="ti ti-plus"></i> Add Note
               </button>
             )}
-            <button className="btn btn-sm" onClick={() => refreshAllData()} title="Sync Server Data">
-              <i className="ti ti-refresh"></i> Sync
+            {syncing && (
+              <span className="sync-status" style={{ fontSize: '12.5px', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '8px' }}>
+                <i className="ti ti-loader animate-spin" style={{ color: 'var(--color-accent)' }}></i>
+                Saving...
+              </span>
+            )}
+            <button className="btn btn-sm" onClick={() => refreshAllData(selectedFolderId, false)} title="Sync Server Data">
+              <i className={`ti ti-refresh ${syncing ? 'animate-spin' : ''}`}></i> Sync
             </button>
           </div>
         </div>
