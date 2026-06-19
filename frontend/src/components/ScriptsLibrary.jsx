@@ -110,6 +110,14 @@ export const getMailtoLink = (lead, scriptText, ccEmail = 'mamindustries19@gmail
   return `mailto:${encodeURIComponent(lead.email || '')}?cc=${encodeURIComponent(ccEmail)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 };
 
+export const getGmailLink = (lead, scriptText, ccEmail = 'mamindustries19@gmail.com', yourName = 'Matheen') => {
+  const personalized = personalizeScript(scriptText, lead, yourName);
+  const subjectMatch = personalized.match(/^Subject:\s*(.*)/i);
+  const subject = subjectMatch ? subjectMatch[1] : 'Precision Fabrication Inquiry';
+  const body = subject ? personalized.replace(/^Subject:\s*(.*)\r?\n\r?\n/i, '') : personalized;
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email || '')}&cc=${encodeURIComponent(ccEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+};
+
 export default function ScriptsLibrary({ leads = [] }) {
   const [currentSeg, setCurrentSeg] = useState('OEM');
   const [currentChannel, setCurrentChannel] = useState('email');
@@ -417,7 +425,7 @@ export default function ScriptsLibrary({ leads = [] }) {
 
                 <div className="script-text">{personalized}</div>
 
-                <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
                   <button
                     className="btn btn-sm copy-btn btn-primary"
                     onClick={() => handleCopy(personalized, idx)}
@@ -428,25 +436,43 @@ export default function ScriptsLibrary({ leads = [] }) {
                       </>
                     ) : (
                       <>
-                        <i className="ti ti-copy"></i> Copy Script
+                        <i className="ti ti-copy"></i> Copy Body
                       </>
                     )}
                   </button>
 
                   {currentChannel === 'email' && email && (
-                    <a
-                      href={getMailtoLink({ name, company, email, city, service }, script.text, ccEmail, yourName || 'Matheen')}
-                      className="btn btn-sm btn-outline-primary"
-                      style={{ 
-                        textDecoration: 'none', 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        gap: '6px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      <i className="ti ti-mail-forward"></i> Send Email
-                    </a>
+                    <>
+                      <a
+                        href={getGmailLink({ name, company, email, city, service }, script.text, ccEmail, yourName || 'Matheen')}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm btn-outline-primary"
+                        style={{ 
+                          textDecoration: 'none', 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        <i className="ti ti-mail-forward"></i> Send via Gmail
+                      </a>
+
+                      <a
+                        href={getMailtoLink({ name, company, email, city, service }, script.text, ccEmail, yourName || 'Matheen')}
+                        className="btn btn-sm btn-outline-primary"
+                        style={{ 
+                          textDecoration: 'none', 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        <i className="ti ti-device-desktop"></i> Send via Mail App
+                      </a>
+                    </>
                   )}
                 </div>
               </div>

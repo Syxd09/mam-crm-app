@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SCRIPTS, getMailtoLink } from './ScriptsLibrary';
+import { SCRIPTS, getMailtoLink, getGmailLink } from './ScriptsLibrary';
 
 const SEGMENTS = ['OEM', 'EPC', 'Architecture', 'Factory', 'Defence'];
 const STATUSES = ['New', 'Contacted', 'Qualified', 'Proposal', 'Won', 'Lost', 'Cold'];
@@ -168,9 +168,11 @@ export default function LeadsTable({
                   <td onClick={(e) => e.stopPropagation()}>
                     {lead.email ? (
                       <a 
-                        href={getMailtoLink(lead, SCRIPTS[lead.segment]?.email?.[0]?.text || '', 'mamindustries19@gmail.com', 'Matheen')}
+                        href={getGmailLink(lead, SCRIPTS[lead.segment]?.email?.[0]?.text || '', 'mamindustries19@gmail.com', 'Matheen')}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="link" 
-                        title="Send Prefilled Intro Email"
+                        title="Compose email in Gmail Web"
                         style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
                         {lead.email} <i className="ti ti-mail-forward" style={{ fontSize: '11px' }}></i>

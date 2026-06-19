@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SCRIPTS, getMailtoLink, personalizeScript } from './ScriptsLibrary';
+import { SCRIPTS, getMailtoLink, getGmailLink, personalizeScript } from './ScriptsLibrary';
 
 export default function LeadDetailDrawer({ 
   lead, 
@@ -13,6 +13,7 @@ export default function LeadDetailDrawer({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplateIdx, setSelectedTemplateIdx] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [subjectCopied, setSubjectCopied] = useState(false);
 
   if (!lead) return null;
 
@@ -67,12 +68,15 @@ export default function LeadDetailDrawer({
   const segmentTemplates = SCRIPTS[lead.segment]?.email || [];
   const activeTemplate = segmentTemplates[selectedTemplateIdx] || segmentTemplates[0] || null;
   
-  // Prefilled mailto link for header card (defaults to Introductory email template 1)
+  // Prefilled links for header card (defaults to Introductory email template 1)
   const introTemplateText = segmentTemplates[0]?.text || '';
-  const defaultMailto = lead.email ? getMailtoLink(lead, introTemplateText, 'mamindustries19@gmail.com', 'Matheen') : '#';
+  const defaultGmailLink = lead.email ? getGmailLink(lead, introTemplateText, 'mamindustries19@gmail.com', 'Matheen') : '#';
 
-  // Mailto link for active selected template in the widget
-  const widgetMailto = lead.email && activeTemplate 
+  // Prefilled links for active selected template in the widget
+  const widgetGmailLink = lead.email && activeTemplate 
+    ? getGmailLink(lead, activeTemplate.text, 'mamindustries19@gmail.com', 'Matheen') 
+    : '#';
+  const widgetMailtoLink = lead.email && activeTemplate 
     ? getMailtoLink(lead, activeTemplate.text, 'mamindustries19@gmail.com', 'Matheen') 
     : '#';
 
@@ -93,6 +97,13 @@ export default function LeadDetailDrawer({
     navigator.clipboard.writeText(body).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  const handleCopySubject = () => {
+    navigator.clipboard.writeText(previewSubject).then(() => {
+      setSubjectCopied(true);
+      setTimeout(() => setSubjectCopied(false), 1500);
     });
   };
 
@@ -152,7 +163,7 @@ export default function LeadDetailDrawer({
                 <span className="info-label">Email</span>
                 <span className="info-value">
                   {lead.email ? (
-                    <a href={defaultMailto} className="link" title="Click to send prefilled Intro email with CC">
+                    <a href={defaultGmailLink} target="_blank" rel="noopener noreferrer" className="link" title="Click to compose Intro email in Gmail Web">
                       {lead.email} <i className="ti ti-mail-forward" style={{ fontSize: '12px', marginLeft: '2px' }}></i>
                     </a>
                   ) : (
@@ -229,29 +240,54 @@ export default function LeadDetailDrawer({
                   <strong>Subject:</strong> <span style={{ color: 'var(--color-text)' }}>{previewSubject}</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   <a
-                    href={widgetMailto}
+                    href={widgetGmailLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="btn btn-sm btn-primary"
                     style={{ 
                       textDecoration: 'none', 
                       display: 'inline-flex', 
                       alignItems: 'center', 
                       gap: '6px', 
-                      flex: 1, 
+                      flex: '1 1 100%', 
                       justifyContent: 'center',
                       fontWeight: '500'
                     }}
                   >
-                    <i className="ti ti-mail-forward"></i> Open Email Client
+                    <i className="ti ti-mail-forward"></i> Send via Gmail (Web)
+                  </a>
+                  <a
+                    href={widgetMailtoLink}
+                    className="btn btn-sm btn-outline-primary"
+                    style={{ 
+                      textDecoration: 'none', 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '6px', 
+                      flex: '1 1 100%',
+                      justifyContent: 'center',
+                      fontWeight: '500'
+                    }}
+                  >
+                    <i className="ti ti-device-desktop"></i> Send via Mail App
                   </a>
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-primary"
-                    onClick={handleCopyTemplate}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}
+                    onClick={handleCopySubject}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '500', flex: '1 1 45%', justifyContent: 'center' }}
                   >
-                    {copied ? <><i className="ti ti-check"></i> Copied</> : <><i className="ti ti-copy"></i> Copy Body</>}
+                    {subjectCopied ? <><i className="ti ti-check"></i> Copied Subject</> : <><i className="ti ti-copy"></i> Copy Subject</>}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={handleCopyTemplate}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '500', flex: '1 1 45%', justifyContent: 'center' }}
+                  >
+                    {copied ? <><i className="ti ti-check"></i> Copied Body</> : <><i className="ti ti-copy"></i> Copy Body</>}
                   </button>
                 </div>
               </div>
