@@ -605,7 +605,7 @@ export default function App() {
                   onSelectLead={setSelectedDetailLead}
                 />
               )}
-              {currentPage === 'scripts' && <ScriptsLibrary />}
+              {currentPage === 'scripts' && <ScriptsLibrary leads={leads} />}
               {currentPage === 'notes' && (
                 <NotesManager
                   notes={notes}
