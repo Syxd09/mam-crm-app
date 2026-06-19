@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const SEGMENTS = ['OEM', 'EPC', 'Architecture', 'Factory', 'Defence'];
 
-const SCRIPTS = {
+export const SCRIPTS = {
   OEM: {
     email: [
       { num: 'Email 1 — Introduction (Sequence)', style: 'Sequence', text: `Subject: Precision fabrication partner for [Company]\n\nHi [Name],\n\nI noticed [Company] manufactures [product type] and I wanted to reach out directly.\n\nMAM Industries is a Bengaluru-based precision metal fabrication company — laser cutting, CNC bending, MIG/TIG welding, powder coating — all under one roof. We work with OEMs across automotive and industrial machinery.\n\nI'd love to understand your current fabrication requirements and see if we can be a fit. Would a quick 15-minute call this week work?\n\nBest,\n[Your name]\nMAM Industries | mamindustries.in` },
@@ -80,6 +80,36 @@ const SCRIPTS = {
   }
 };
 
+export const personalizeScript = (text, lead, yourName = 'Matheen') => {
+  if (!text) return '';
+  const leadName = lead.name || '';
+  const leadCompany = lead.company || '';
+  const leadCity = lead.city || '';
+  const leadService = lead.service || '';
+  return text
+    .replace(/\[Name\]/g, leadName || '[Name]')
+    .replace(/\[Company\]/g, leadCompany || '[Company]')
+    .replace(/\[Firm\]/g, leadCompany || '[Firm]')
+    .replace(/\[Project\/Company\]/g, leadCompany || '[Project/Company]')
+    .replace(/\[city\]/g, leadCity || '[city]')
+    .replace(/\[City\]/g, leadCity || '[City]')
+    .replace(/\[product type\]/g, leadService || '[product type]')
+    .replace(/\[type of project, if known\]/g, leadService || '[type of project]')
+    .replace(/\[type of project\]/g, leadService || '[type of project]')
+    .replace(/\[project or style\]/g, leadService || '[project or style]')
+    .replace(/\[Your name\]/g, yourName || '[Your name]')
+    .replace(/\[Your projects\]/g, yourName || '[Your projects]')
+    .replace(/\[spec\]/g, '20mm steel');
+};
+
+export const getMailtoLink = (lead, scriptText, ccEmail = 'mamindustries19@gmail.com', yourName = 'Matheen') => {
+  const personalized = personalizeScript(scriptText, lead, yourName);
+  const subjectMatch = personalized.match(/^Subject:\s*(.*)/i);
+  const subject = subjectMatch ? subjectMatch[1] : 'Precision Fabrication Inquiry';
+  const body = subject ? personalized.replace(/^Subject:\s*(.*)\r?\n\r?\n/i, '') : personalized;
+  return `mailto:${encodeURIComponent(lead.email || '')}?cc=${encodeURIComponent(ccEmail)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+};
+
 export default function ScriptsLibrary({ leads = [] }) {
   const [currentSeg, setCurrentSeg] = useState('OEM');
   const [currentChannel, setCurrentChannel] = useState('email');
@@ -92,6 +122,7 @@ export default function ScriptsLibrary({ leads = [] }) {
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [email, setEmail] = useState('');
+  const [ccEmail, setCcEmail] = useState('mamindustries19@gmail.com');
   const [city, setCity] = useState('');
   const [service, setService] = useState('');
   const [yourName, setYourName] = useState('');
@@ -100,21 +131,7 @@ export default function ScriptsLibrary({ leads = [] }) {
   const [emailStyle, setEmailStyle] = useState('All');
 
   const personalizeText = (text) => {
-    if (!text) return '';
-    return text
-      .replace(/\[Name\]/g, name || '[Name]')
-      .replace(/\[Company\]/g, company || '[Company]')
-      .replace(/\[Firm\]/g, company || '[Firm]')
-      .replace(/\[Project\/Company\]/g, company || '[Project/Company]')
-      .replace(/\[city\]/g, city || '[city]')
-      .replace(/\[City\]/g, city || '[City]')
-      .replace(/\[product type\]/g, service || '[product type]')
-      .replace(/\[type of project, if known\]/g, service || '[type of project]')
-      .replace(/\[type of project\]/g, service || '[type of project]')
-      .replace(/\[project or style\]/g, service || '[project or style]')
-      .replace(/\[Your name\]/g, yourName || '[Your name]')
-      .replace(/\[Your projects\]/g, yourName || '[Your projects]')
-      .replace(/\[spec\]/g, '20mm steel');
+    return personalizeScript(text, { name, company, city, service }, yourName || 'Matheen');
   };
 
   const handleCopy = (text, index) => {
@@ -130,6 +147,7 @@ export default function ScriptsLibrary({ leads = [] }) {
       setName('');
       setCompany('');
       setEmail('');
+      setCcEmail('mamindustries19@gmail.com');
       setCity('');
       setService('');
       return;
@@ -152,6 +170,7 @@ export default function ScriptsLibrary({ leads = [] }) {
     setName('');
     setCompany('');
     setEmail('');
+    setCcEmail('mamindustries19@gmail.com');
     setCity('');
     setService('');
   };
@@ -177,7 +196,7 @@ export default function ScriptsLibrary({ leads = [] }) {
             <i className="ti ti-edit" style={{ marginRight: '6px' }}></i> 
             Personalize Script Details
           </span>
-          {(name || company || email || city || service) && (
+          {(name || company || email || city || service || ccEmail !== 'mamindustries19@gmail.com') && (
             <button 
               className="btn btn-sm btn-outline-danger" 
               onClick={handleReset} 
@@ -253,6 +272,15 @@ export default function ScriptsLibrary({ leads = [] }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. rahul@company.com"
+            />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">CC Email</label>
+            <input
+              type="email"
+              value={ccEmail}
+              onChange={(e) => setCcEmail(e.target.value)}
+              placeholder="e.g. manager@company.com"
             />
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -362,11 +390,6 @@ export default function ScriptsLibrary({ leads = [] }) {
         <div className="scripts-content">
           {filteredData.map((script, idx) => {
             const personalized = personalizeText(script.text);
-            
-            // Extract Subject and Body for mailto client mapping
-            const subjectMatch = personalized.match(/^Subject:\s*(.*)/i);
-            const subject = subjectMatch ? subjectMatch[1] : '';
-            const body = subject ? personalized.replace(/^Subject:\s*(.*)\r?\n\r?\n/i, '') : personalized;
 
             return (
               <div key={idx} className="script-block">
@@ -412,7 +435,7 @@ export default function ScriptsLibrary({ leads = [] }) {
 
                   {currentChannel === 'email' && email && (
                     <a
-                      href={`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject || 'Precision Fabrication Sourcing Inquiry')}&body=${encodeURIComponent(body)}`}
+                      href={getMailtoLink({ name, company, email, city, service }, script.text, ccEmail, yourName || 'Matheen')}
                       className="btn btn-sm btn-outline-primary"
                       style={{ 
                         textDecoration: 'none', 

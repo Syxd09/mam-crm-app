@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SCRIPTS, getMailtoLink, personalizeScript } from './ScriptsLibrary';
 
 export default function LeadDetailDrawer({ 
   lead, 
@@ -10,6 +11,8 @@ export default function LeadDetailDrawer({
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTemplateIdx, setSelectedTemplateIdx] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   if (!lead) return null;
 
@@ -58,6 +61,39 @@ export default function LeadDetailDrawer({
     } catch (e) {
       return dateString;
     }
+  };
+
+  // Get templates for this segment
+  const segmentTemplates = SCRIPTS[lead.segment]?.email || [];
+  const activeTemplate = segmentTemplates[selectedTemplateIdx] || segmentTemplates[0] || null;
+  
+  // Prefilled mailto link for header card (defaults to Introductory email template 1)
+  const introTemplateText = segmentTemplates[0]?.text || '';
+  const defaultMailto = lead.email ? getMailtoLink(lead, introTemplateText, 'mamindustries19@gmail.com', 'Matheen') : '#';
+
+  // Mailto link for active selected template in the widget
+  const widgetMailto = lead.email && activeTemplate 
+    ? getMailtoLink(lead, activeTemplate.text, 'mamindustries19@gmail.com', 'Matheen') 
+    : '#';
+
+  // Get personalized preview of subject
+  let previewSubject = 'No subject';
+  if (activeTemplate) {
+    const personalized = personalizeScript(activeTemplate.text, lead, 'Matheen');
+    const subjectMatch = personalized.match(/^Subject:\s*(.*)/i);
+    previewSubject = subjectMatch ? subjectMatch[1] : 'Precision Fabrication Inquiry';
+  }
+
+  const handleCopyTemplate = () => {
+    if (!activeTemplate) return;
+    const personalized = personalizeScript(activeTemplate.text, lead, 'Matheen');
+    const subjectMatch = personalized.match(/^Subject:\s*(.*)/i);
+    const body = subjectMatch ? personalized.replace(/^Subject:\s*(.*)\r?\n\r?\n/i, '') : personalized;
+    
+    navigator.clipboard.writeText(body).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
   };
 
   return (
@@ -116,7 +152,9 @@ export default function LeadDetailDrawer({
                 <span className="info-label">Email</span>
                 <span className="info-value">
                   {lead.email ? (
-                    <a href={`mailto:${lead.email}`} className="link">{lead.email}</a>
+                    <a href={defaultMailto} className="link" title="Click to send prefilled Intro email with CC">
+                      {lead.email} <i className="ti ti-mail-forward" style={{ fontSize: '12px', marginLeft: '2px' }}></i>
+                    </a>
                   ) : (
                     '-'
                   )}
@@ -147,6 +185,78 @@ export default function LeadDetailDrawer({
               )}
             </div>
           </div>
+
+          {/* Quick Email Outreach Section */}
+          {lead.email && segmentTemplates.length > 0 && (
+            <div className="info-section">
+              <h3 className="section-title">Quick Email Outreach</h3>
+              <div style={{ 
+                background: 'var(--color-bg-alt)', 
+                padding: '16px', 
+                borderRadius: '8px', 
+                border: '1px solid var(--color-border)',
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
+              }}>
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', display: 'block' }}>
+                    Select Outreach Template Style
+                  </label>
+                  <select 
+                    value={selectedTemplateIdx} 
+                    onChange={(e) => setSelectedTemplateIdx(Number(e.target.value))}
+                    style={{ 
+                      width: '100%', 
+                      padding: '8px 12px', 
+                      borderRadius: '6px', 
+                      fontSize: '12.5px',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-bg)',
+                      color: 'var(--color-text)',
+                      outline: 'none',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    {segmentTemplates.map((t, idx) => (
+                      <option key={idx} value={idx}>
+                        {t.num} ({t.style || 'Sequence'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Preview of the personalized subject */}
+                <div style={{ marginBottom: '16px', fontSize: '12px', background: 'var(--color-bg)', padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                  <strong>Subject:</strong> <span style={{ color: 'var(--color-text)' }}>{previewSubject}</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <a
+                    href={widgetMailto}
+                    className="btn btn-sm btn-primary"
+                    style={{ 
+                      textDecoration: 'none', 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '6px', 
+                      flex: 1, 
+                      justifyContent: 'center',
+                      fontWeight: '500'
+                    }}
+                  >
+                    <i className="ti ti-mail-forward"></i> Open Email Client
+                  </a>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={handleCopyTemplate}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}
+                  >
+                    {copied ? <><i className="ti ti-check"></i> Copied</> : <><i className="ti ti-copy"></i> Copy Body</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Project Details */}
           {lead.notes && (
